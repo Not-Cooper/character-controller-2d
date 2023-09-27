@@ -9,6 +9,7 @@ public class CharacterController2D : MonoBehaviour
     private FrameInput Input;
 
     [SerializeField] private Bounds characterBounds;
+    [SerializeField] private Vector3 boundOffset;
     [SerializeField] private float topSpeed;
     [SerializeField] private float acceleration;
     [SerializeField] private float decceleration;
@@ -25,6 +26,9 @@ public class CharacterController2D : MonoBehaviour
 
     [Range(-100f, 0f)]
     [SerializeField] private float fallClamp;
+
+    [SerializeField] private float jumpHangTimeThreshold;
+    [SerializeField] private float jumpHangTimeGravityMult;
 
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
@@ -66,7 +70,7 @@ public class CharacterController2D : MonoBehaviour
 
     private void FixedUpdate()
     {
-        
+
     }
 
 
@@ -95,7 +99,8 @@ public class CharacterController2D : MonoBehaviour
         if (Input.X > 0 && !facingRight)
         {
             Flip();
-        }else if (Input.X < 0 && facingRight)
+        }
+        else if (Input.X < 0 && facingRight)
         {
             Flip();
         }
@@ -120,7 +125,8 @@ public class CharacterController2D : MonoBehaviour
 
         //change accel rate based on above
         float accelRate;
-        if (Mathf.Abs(targetSpeed) > 0.1){
+        if (Mathf.Abs(targetSpeed) > 0.1)
+        {
             accelRate = acceleration;
         }
         else
@@ -158,7 +164,6 @@ public class CharacterController2D : MonoBehaviour
         {
             if (playerBody.velocity.y <= 0.01)
             {
-                //playerBody.AddForce(Vector2.up * jumpStrength, ForceMode2D.Impulse);
                 playerBody.velocity = new Vector2(playerBody.velocity.x, jumpStrength);
                 jumpBufferCounter = 0f;
                 endedJumpEarly = false;
@@ -175,9 +180,10 @@ public class CharacterController2D : MonoBehaviour
 
     private void CheckGround()
     {
-        if (Physics2D.OverlapBox(transform.position, characterBounds.extents, 0, ~layerMask))
+        if (Physics2D.OverlapBox(transform.position + boundOffset, characterBounds.size, 0, ~layerMask))
         {
             isGrounded = true;
+            animator.isFalling = false;
         }
         else
         {
@@ -203,6 +209,11 @@ public class CharacterController2D : MonoBehaviour
         {
             playerBody.velocity = Vector2.ClampMagnitude(playerBody.velocity, Mathf.Abs(fallClamp));
         }
+
+        if (jumping && Mathf.Abs(playerBody.velocity.y) < jumpHangTimeThreshold)
+        {
+            playerBody.gravityScale = jumpHangTimeGravityMult * gravityScale;
+        }
     }
 
 
@@ -211,5 +222,18 @@ public class CharacterController2D : MonoBehaviour
         public bool JumpDown { get; set; }
         public bool JumpUp { get; set; }
         public float X { get; set; }
+    }
+
+
+
+    private void drawBounds(float delay = 0)
+    {
+        characterBounds.center = transform.position + boundOffset;
+
+        // bottom
+        var p1 = new Vector3(characterBounds.min.x, characterBounds.min.y, characterBounds.min.z);
+        var p2 = new Vector3(characterBounds.max.x, characterBounds.min.y, characterBounds.min.z);
+
+        Debug.DrawLine(p1, p2, Color.blue, delay);
     }
 }
